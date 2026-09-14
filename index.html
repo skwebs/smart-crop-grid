@@ -562,16 +562,16 @@ button{line-height:1}
             <div class="mb-0.5 flex items-center justify-between">
               <label for="spacing" class="text-[9px] font-semibold text-gray-500">Spacing</label>
               <select id="spacingUnit" class="h-4.5 rounded border border-gray-300 bg-white px-0.5 text-[9px] font-bold text-gray-700 outline-none">
-                <option value="px">px</option>
                 <option value="mm">mm</option>
                 <option value="cm">cm</option>
                 <option value="in">in</option>
+                <option value="px">px</option>
               </select>
             </div>
 
             <div class="flex h-6 overflow-hidden rounded border border-gray-300 bg-white mb-1">
               <button id="spacingMinus" type="button" class="w-5 shrink-0 border-r border-gray-200 text-xs">−</button>
-              <input id="spacing" type="text" inputmode="decimal" autocomplete="off" value="12" class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
+              <input id="spacing" type="text" inputmode="decimal" autocomplete="off" value="2" class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
               <button id="spacingPlus" type="button" class="w-5 shrink-0 border-l border-gray-200 text-xs">+</button>
             </div>
 
@@ -695,9 +695,9 @@ button{line-height:1}
       <button id="actualButton" class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-2 text-[10px] font-semibold">100%</button>
 
       <select id="rulerUnit" class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-1.5 text-[10px] font-semibold">
-        <option value="in">in</option>
-        <option value="cm">cm</option>
         <option value="mm">mm</option>
+        <option value="cm">cm</option>
+        <option value="in">in</option>
         <option value="px">px</option>
       </select>
 
@@ -912,8 +912,8 @@ const layout = {
   paper:"A4",
   landscape:false,
   imageBgColor:"#ffffff",
-  gap:12,
-  spacingUnit:"px",
+  gap:2,
+  spacingUnit:"mm",
   borderWidth:5,
   borderColor:"#000000",
   renderSizeUnit:"mm"
@@ -947,7 +947,7 @@ let hasSheet = false;
 let updateTimer = null;
 let isProcessing = false;
 
-let rulerUnit = "in";
+let rulerUnit = "cm";
 let layoutVisible = !matchMedia("(max-width:700px)").matches;
 
 let mouseDragging = false;
