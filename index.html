@@ -1,795 +1,1098 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Smart Crop Grid Print Studio</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Smart Crop Grid Print Studio</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-<script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js"></script>
-<!-- Face Detection & Alignment CDN for Smart Crop -->
-<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
-<!-- JSZip for Exporting Cropped Images Archive -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js"></script>
+    <!-- Face Detection & Alignment CDN for Smart Crop -->
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+    <!-- JSZip for Exporting Cropped Images Archive -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
-<style>
-html,body{
-  width:100%;
-  height:100%;
-  margin:0;
-  overflow:hidden;
-  background:#d1d5db;
-  overscroll-behavior:none;
-  user-select:none;
-  -webkit-user-select:none;
-  -webkit-touch-callout:none;
-}
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: #d1d5db;
+            overscroll-behavior: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
 
-*,*:before,*:after{
-  box-sizing:border-box;
-  -webkit-user-select:none;
-  user-select:none;
-  -webkit-touch-callout:none;
-}
+        *,
+        *:before,
+        *:after {
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
 
-input,select{
-  user-select:auto;
-  -webkit-user-select:auto;
-}
+        input,
+        select {
+            user-select: auto;
+            -webkit-user-select: auto;
+        }
 
-button,input,select{font-family:inherit}
-button{line-height:1}
+        button,
+        input,
+        select {
+            font-family: inherit
+        }
 
-#app{
-  position:fixed;
-  inset:0;
-  width:100%;
-  height:100dvh;
-  overflow:hidden;
-}
+        button {
+            line-height: 1
+        }
 
-#viewport{
-  position:absolute;
-  inset:0;
-  overflow:hidden;
-  background:#d1d5db;
-  cursor:grab;
-  touch-action:none;
-  overscroll-behavior:none;
-}
+        #app {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100dvh;
+            overflow: hidden;
+        }
 
-#viewport.dragging{cursor:grabbing}
+        #viewport {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            background: #d1d5db;
+            cursor: grab;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
 
-#viewportCanvas{
-  display:block;
-  width:100%;
-  height:100%;
-  touch-action:none;
-}
+        #viewport.dragging {
+            cursor: grabbing
+        }
 
-#topRuler{
-  position:absolute;
-  z-index:20;
-  top:0;
-  left:32px;
-  right:0;
-  height:32px;
-  overflow:hidden;
-  background:#f8fafc;
-  border-bottom:1px solid #cbd5e1;
-  pointer-events:none;
-}
+        #viewportCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
 
-#leftRuler{
-  position:absolute;
-  z-index:20;
-  top:32px;
-  left:0;
-  bottom:0;
-  width:32px;
-  overflow:hidden;
-  background:#f8fafc;
-  border-right:1px solid #cbd5e1;
-  pointer-events:none;
-}
+        #topRuler {
+            position: absolute;
+            z-index: 20;
+            top: 0;
+            left: 32px;
+            right: 0;
+            height: 32px;
+            overflow: hidden;
+            background: #f8fafc;
+            border-bottom: 1px solid #cbd5e1;
+            pointer-events: none;
+        }
 
-#rulerCorner{
-  position:absolute;
-  z-index:30;
-  top:0;
-  left:0;
-  width:32px;
-  height:32px;
-  background:#f1f5f9;
-  border-right:1px solid #cbd5e1;
-  border-bottom:1px solid #cbd5e1;
-  pointer-events:none;
-}
+        #leftRuler {
+            position: absolute;
+            z-index: 20;
+            top: 32px;
+            left: 0;
+            bottom: 0;
+            width: 32px;
+            overflow: hidden;
+            background: #f8fafc;
+            border-right: 1px solid #cbd5e1;
+            pointer-events: none;
+        }
 
-/* SMART CROP MODAL & CHECKERBOARD TRANSPARENT BACKGROUND */
-#smartCropModal{
-  position:fixed;
-  z-index:200;
-  inset:0;
-  display:none;
-  flex-direction:column;
-  background:rgba(15,23,42,.92);
-  backdrop-filter:blur(8px);
-}
+        #rulerCorner {
+            position: absolute;
+            z-index: 30;
+            top: 0;
+            left: 0;
+            width: 32px;
+            height: 32px;
+            background: #f1f5f9;
+            border-right: 1px solid #cbd5e1;
+            border-bottom: 1px solid #cbd5e1;
+            pointer-events: none;
+        }
 
-#smartCropModal.visible{display:flex}
+        /* SMART CROP MODAL & CHECKERBOARD TRANSPARENT BACKGROUND */
+        #smartCropModal {
+            position: fixed;
+            z-index: 200;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            background: rgba(15, 23, 42, .92);
+            backdrop-filter: blur(8px);
+        }
 
-.smart-crop-stage{
-  touch-action:none;
-  cursor:grab;
-  box-shadow:0 20px 30px -10px rgba(0,0,0,.5);
-  background-color:#ffffff;
-  background-image:
-    linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
-    linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
-    linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
-  background-size:16px 16px;
-  background-position:0 0, 0 8px, 8px -8px, -8px 0px;
-}
-.smart-crop-stage:active{cursor:grabbing}
-.smart-crop-stage.all-locked{cursor:default !important}
+        #smartCropModal.visible {
+            display: flex
+        }
 
-/* IMAGE TRAY */
-#imageTray{
-  position:absolute;
-  z-index:55;
-  left:50%;
-  bottom:58px;
-  transform:translateX(-50%);
-  max-width:min(94vw,860px);
-  padding:6px;
-  border:1px solid #cbd5e1;
-  border-radius:10px;
-  background:rgba(255,255,255,.97);
-  box-shadow:0 10px 25px rgba(0,0,0,.15);
-}
+        .smart-crop-stage {
+            touch-action: none;
+            cursor: grab;
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, .5);
+            background-color: #ffffff;
+            background-image:
+                linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+                linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+                linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
 
-#thumbnailList{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  max-width:100%;
-  overflow-x:auto;
-  scrollbar-width:none;
-  padding:3px;
-}
+        .smart-crop-stage:active {
+            cursor: grabbing
+        }
 
-#thumbnailList::-webkit-scrollbar{display:none}
+        .smart-crop-stage.all-locked {
+            cursor: default !important
+        }
 
-.image-thumb{
-  position:relative;
-  flex:0 0 84px;
-  width:84px;
-  display:flex;
-  flex-direction:column;
-  border:1px solid #d1d5db;
-  border-radius:6px;
-  background:#f8fafc;
-  overflow:hidden;
-}
+        /* IMAGE TRAY */
+        #imageTray {
+            position: absolute;
+            z-index: 55;
+            left: 50%;
+            bottom: 58px;
+            transform: translateX(-50%);
+            max-width: min(94vw, 860px);
+            padding: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .97);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .15);
+        }
 
-.image-thumb.active{
-  border-color:#111827;
-  outline:2px solid #111827;
-  outline-offset:-1px;
-}
+        #thumbnailList {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding: 3px;
+        }
 
-.image-thumb.hidden-image{opacity:.48}
+        #thumbnailList::-webkit-scrollbar {
+            display: none
+        }
 
-.image-thumb-preview{
-  display:flex;
-  width:100%;
-  height:82px;
-  align-items:center;
-  justify-content:center;
-  border:0;
-  padding:0;
-  background-color:#ffffff;
-  background-image:
-    linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
-    linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
-    linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
-  background-size:12px 12px;
-  background-position:0 0, 0 6px, 6px -6px, -6px 0px;
-  cursor:pointer;
-}
+        .image-thumb {
+            position: relative;
+            flex: 0 0 84px;
+            width: 84px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #f8fafc;
+            overflow: hidden;
+        }
 
-.image-thumb-preview img,
-.image-thumb-preview canvas{
-  display:block;
-  width:100%;
-  height:100%;
-  object-fit:contain;
-}
+        .image-thumb.active {
+            border-color: #111827;
+            outline: 2px solid #111827;
+            outline-offset: -1px;
+        }
 
-.image-thumb-number{
-  position:absolute;
-  left:3px;
-  top:3px;
-  min-width:18px;
-  height:18px;
-  padding:0 4px;
-  border-radius:4px;
-  background:rgba(17,24,39,.82);
-  color:#fff;
-  font-size:10px;
-  font-weight:600;
-  line-height:18px;
-  text-align:center;
-  pointer-events:none;
-}
+        .image-thumb.hidden-image {
+            opacity: .48
+        }
 
-/* THUMBNAIL BOTTOM ACTION TOOLBAR */
-.image-thumb-actions{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  width:100%;
-  height:24px;
-  padding:0 2px;
-  background:#f1f5f9;
-  border-top:1px solid #cbd5e1;
-}
+        .image-thumb-preview {
+            display: flex;
+            width: 100%;
+            height: 82px;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            padding: 0;
+            background-color: #ffffff;
+            background-image:
+                linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+                linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+                linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+            background-size: 12px 12px;
+            background-position: 0 0, 0 6px, 6px -6px, -6px 0px;
+            cursor: pointer;
+        }
 
-.image-thumb-actions button{
-  flex:1;
-  height:20px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border:0;
-  background:transparent;
-  border-radius:3px;
-  color:#475569;
-  font-size:11px;
-  cursor:pointer;
-}
+        .image-thumb-preview img,
+        .image-thumb-preview canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
 
-.image-thumb-actions button:hover{
-  background:#e2e8f0;
-  color:#0f172a;
-}
+        .image-thumb-number {
+            position: absolute;
+            left: 3px;
+            top: 3px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            border-radius: 4px;
+            background: rgba(17, 24, 39, .82);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 18px;
+            text-align: center;
+            pointer-events: none;
+            z-index: 5;
+        }
 
-.image-thumb-actions button.danger:hover{
-  background:#fee2e2;
-  color:#dc2626;
-}
+        /* THUMBNAIL TOP-RIGHT SELECT CHECKBOX WRAPPER */
+        .image-thumb-select-wrap {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            z-index: 15;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 19px;
+            height: 19px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, .94);
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
+            cursor: pointer;
+        }
 
-/* FLOATING CONTEXT MENU FOR RIGHT-CLICK / LONG-PRESS */
-#globalContextMenu{
-  position:fixed;
-  z-index:300;
-  display:none;
-  flex-direction:column;
-  width:140px;
-  border-radius:6px;
-  border:1px solid #cbd5e1;
-  background:#ffffff;
-  box-shadow:0 10px 25px rgba(0,0,0,.25);
-  overflow:hidden;
-}
+        .image-thumb-select-wrap:hover {
+            background: #ffffff;
+            border-color: #94a3b8;
+        }
 
-.context-menu-item{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:8px 10px;
-  font-size:11px;
-  font-weight:600;
-  color:#374151;
-  background:transparent;
-  border:none;
-  border-bottom:1px solid #f1f5f9;
-  text-align:left;
-  cursor:pointer;
-}
+        .image-thumb-select-cb {
+            width: 13px;
+            height: 13px;
+            cursor: pointer;
+            accent-color: #0f172a;
+            margin: 0;
+        }
 
-.context-menu-item:last-child{border-bottom:none}
-.context-menu-item:hover{background:#f8fafc; color:#0f172a}
-.context-menu-item.danger{color:#dc2626}
-.context-menu-item.danger:hover{background:#fef2f2}
+        /* THUMBNAIL BOTTOM ACTION TOOLBAR */
+        .image-thumb-actions {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            height: 24px;
+            padding: 0;
+            background: #f1f5f9;
+            border-top: 1px solid #cbd5e1;
+        }
 
-.add-image-thumb{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  height:106px;
-  gap:2px;
-  border-style:dashed;
-  color:#6b7280;
-  font-size:10px;
-  cursor:pointer;
-}
+        .image-thumb-actions button.thumb-action-btn {
+            flex: 1 1 0;
+            width: 33.333%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            background: transparent;
+            border-right: 1px solid #e2e8f0;
+            color: #334155;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
 
-.add-image-plus{
-  font-size:24px;
-  font-weight:300;
-  line-height:20px;
-}
+        .image-thumb-actions button.thumb-action-btn:last-child {
+            border-right: none;
+        }
 
-#trayCloseBtn{
-  position:absolute;
-  top:-13px;
-  right:6px;
-  z-index:60;
-  display:flex;
-  width:24px;
-  height:24px;
-  align-items:center;
-  justify-content:center;
-  border-radius:9999px;
-  border:1px solid #cbd5e1;
-  background:#ffffff;
-  color:#374151;
-  font-size:13px;
-  font-weight:bold;
-  line-height:1;
-  box-shadow:0 3px 8px rgba(0,0,0,.15);
-  cursor:pointer;
-}
+        .image-thumb-actions button.thumb-action-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
 
-#trayCloseBtn:hover{background:#f3f4f6; color:#111827}
+        .image-thumb-actions button.thumb-action-btn.danger {
+            font-size: 16px;
+        }
 
-/* SIDEBAR ACCORDIONS */
-.sidebar-group{
-  border:1px solid #e2e8f0;
-  border-radius:6px;
-  margin-bottom:6px;
-  overflow:hidden;
-  background:#ffffff;
-}
+        .image-thumb-actions button.thumb-action-btn.danger:hover {
+            background: #fee2e2;
+            color: #dc2626;
+        }
 
-.sidebar-group-header{
-  width:100%;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:5px 8px;
-  background:#f8fafc;
-  font-size:10px;
-  font-weight:700;
-  color:#334155;
-  border:none;
-  cursor:pointer;
-}
+        /* FLOATING CONTEXT MENU FOR RIGHT-CLICK / LONG-PRESS */
+        #globalContextMenu {
+            position: fixed;
+            z-index: 300;
+            display: none;
+            flex-direction: column;
+            width: 140px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .25);
+            overflow: hidden;
+        }
 
-.sidebar-group-header:hover{background:#f1f5f9}
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #374151;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #f1f5f9;
+            text-align: left;
+            cursor: pointer;
+        }
 
-.sidebar-group-body{
-  padding:6px 8px;
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
+        .context-menu-item:last-child {
+            border-bottom: none
+        }
 
-.sidebar-group.collapsed .sidebar-group-body{display:none}
+        .context-menu-item:hover {
+            background: #f8fafc;
+            color: #0f172a
+        }
 
-.group-arrow{
-  font-size:8px;
-  transition:transform .15s ease;
-}
+        .context-menu-item.danger {
+            color: #dc2626
+        }
 
-.sidebar-group.collapsed .group-arrow{transform:rotate(-90deg)}
+        .context-menu-item.danger:hover {
+            background: #fef2f2
+        }
 
-/* PROCESSING INDICATOR */
-#processingIndicator{
-  position:fixed;
-  top:12px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:250;
-  display:none;
-  align-items:center;
-  gap:6px;
-  padding:4px 12px;
-  border-radius:9999px;
-  background:rgba(17,24,39,.88);
-  color:#ffffff;
-  font-size:11px;
-  font-weight:500;
-  box-shadow:0 4px 12px rgba(0,0,0,.25);
-  pointer-events:none;
-  backdrop-filter:blur(4px);
-}
+        .add-image-thumb {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 106px;
+            gap: 2px;
+            border-style: dashed;
+            color: #6b7280;
+            font-size: 10px;
+            cursor: pointer;
+        }
 
-#processingIndicator.visible{display:flex}
+        .add-image-plus {
+            font-size: 24px;
+            font-weight: 300;
+            line-height: 20px;
+        }
 
-.indicator-spinner{
-  width:12px;
-  height:12px;
-  border:2px solid rgba(255,255,255,.3);
-  border-top-color:#ffffff;
-  border-radius:50%;
-  animation:spin .6s linear infinite;
-}
+        #trayCloseBtn {
+            position: absolute;
+            top: -13px;
+            right: 6px;
+            z-index: 60;
+            display: flex;
+            width: 24px;
+            height: 24px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #374151;
+            font-size: 13px;
+            font-weight: bold;
+            line-height: 1;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, .15);
+            cursor: pointer;
+        }
 
-@keyframes spin{to{transform:rotate(360deg)}}
+        #trayCloseBtn:hover {
+            background: #f3f4f6;
+            color: #111827
+        }
 
-@media(max-width:700px){
-  #layoutPanel{
-    top:54px;
-    right:6px;
-    width:160px;
-    max-height:calc(100dvh - 120px);
-  }
-}
+        /* SIDEBAR ACCORDIONS */
+        .sidebar-group {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            overflow: hidden;
+            background: #ffffff;
+        }
 
-#emptyState.hidden{display:none}
+        .sidebar-group-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 8px;
+            background: #f8fafc;
+            font-size: 10px;
+            font-weight: 700;
+            color: #334155;
+            border: none;
+            cursor: pointer;
+        }
 
-@media(max-width:700px){
-  #emptyState>div{
-    max-width:calc(100vw - 72px);
-    text-align:center;
-  }
-}
-</style>
+        .sidebar-group-header:hover {
+            background: #f1f5f9
+        }
+
+        .sidebar-group-body {
+            padding: 6px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sidebar-group.collapsed .sidebar-group-body {
+            display: none
+        }
+
+        .group-arrow {
+            font-size: 8px;
+            transition: transform .15s ease;
+        }
+
+        .sidebar-group.collapsed .group-arrow {
+            transform: rotate(-90deg)
+        }
+
+        /* PROCESSING INDICATOR */
+        #processingIndicator {
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 250;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            background: rgba(17, 24, 39, .88);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .25);
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+
+        #processingIndicator.visible {
+            display: flex
+        }
+
+        .indicator-spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @media(max-width:700px) {
+            #layoutPanel {
+                top: 54px;
+                right: 6px;
+                width: 160px;
+                max-height: calc(100dvh - 120px);
+            }
+        }
+
+        #emptyState.hidden {
+            display: none
+        }
+
+        @media(max-width:700px) {
+            #emptyState>div {
+                max-width: calc(100vw - 72px);
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 
 <body>
-<div id="app">
+    <div id="app">
 
-  <!-- Processing Indicator -->
-  <div id="processingIndicator">
-    <div class="indicator-spinner"></div>
-    <span id="processingText">Loading AI Models...</span>
-  </div>
-
-  <div id="viewport">
-    <canvas id="viewportCanvas"></canvas>
-  </div>
-
-  <div id="topRuler"></div>
-  <div id="leftRuler"></div>
-  <div id="rulerCorner"></div>
-
-  <!-- COMPACT SINGLE-COLUMN PRINT LAYOUT PANEL -->
-  <aside
-    id="layoutPanel"
-    class="absolute right-3.5 top-10 z-[70] w-48 rounded-lg border border-gray-300 bg-white p-2 shadow-2xl flex flex-col max-h-[calc(100dvh-100px)]"
-  >
-    <div class="mb-1.5 flex items-center justify-between shrink-0 pb-1 border-b border-gray-200">
-      <div class="text-[11px] font-bold leading-none text-gray-800">
-        Print Layout
-      </div>
-
-      <button
-        id="closeLayoutButton"
-        type="button"
-        class="flex h-5 w-5 items-center justify-center rounded-[4px] border border-gray-300 bg-white p-0 text-xs leading-none text-gray-700 hover:bg-gray-100"
-      >×</button>
-    </div>
-
-    <div class="flex-1 overflow-y-auto pr-0.5 space-y-1.5" style="scrollbar-width:thin;">
-
-      <!-- PHOTO DIMENSIONS GROUP (LOCKED ASPECT RATIO) -->
-      <div class="sidebar-group" id="grpDimensions">
-        <button type="button" class="sidebar-group-header" onclick="toggleGroup('grpDimensions')">
-          <span>Image Render Size</span>
-          <span class="group-arrow">▼</span>
-        </button>
-        <div class="sidebar-group-body">
-          <div class="flex items-center justify-between">
-            <span class="text-[9px] font-semibold text-gray-500">Unit</span>
-            <select id="renderSizeUnit" class="h-5 rounded border border-gray-300 bg-white px-1 text-[9px] font-bold text-gray-700 outline-none">
-              <option value="mm">mm</option>
-              <option value="cm">cm</option>
-              <option value="in">in</option>
-              <option value="px">px</option>
-            </select>
-          </div>
-
-          <div class="grid grid-cols-2 gap-1.5">
-            <div>
-              <label for="renderWidth" class="mb-0.5 block text-[9px] font-semibold text-gray-500">Width</label>
-              <input id="renderWidth" type="text" inputmode="decimal" class="h-6 w-full rounded border border-gray-300 px-1 text-center text-[10px] outline-none">
-            </div>
-            <div>
-              <label for="renderHeight" class="mb-0.5 block text-[9px] font-semibold text-gray-500">Height</label>
-              <input id="renderHeight" type="text" inputmode="decimal" class="h-6 w-full rounded border border-gray-300 px-1 text-center text-[10px] outline-none">
-            </div>
-          </div>
-          <div class="text-[8px] text-gray-400 italic text-center">Ratio locked with active photo</div>
+        <!-- Processing Indicator -->
+        <div id="processingIndicator">
+            <div class="indicator-spinner"></div>
+            <span id="processingText">Loading AI Models...</span>
         </div>
-      </div>
 
-      <!-- PAPER GROUP -->
-      <div class="sidebar-group" id="grpPaper">
-        <button type="button" class="sidebar-group-header" onclick="toggleGroup('grpPaper')">
-          <span>Paper Setup</span>
-          <span class="group-arrow">▼</span>
-        </button>
-        <div class="sidebar-group-body">
-          <div>
-            <label for="paperSize" class="mb-0.5 block text-[9px] font-semibold text-gray-500">Size</label>
-            <select id="paperSize" class="h-6 w-full rounded border border-gray-300 bg-white px-1 text-[10px] text-gray-700 outline-none">
-              <option value="A4">A4</option>
-              <option value="4x6">4 × 6</option>
-              <option value="5x7">5 × 7</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Orientation</label>
-            <button id="portraitButton" type="button" class="mb-1 h-6 w-full rounded border border-gray-900 bg-gray-900 px-1 text-[10px] font-medium text-white">Portrait</button>
-            <button id="landscapeButton" type="button" class="h-6 w-full rounded border border-gray-300 bg-white px-1 text-[10px] font-medium text-gray-700">Landscape</button>
-          </div>
-
-          <div>
-            <label for="ppi" class="mb-0.5 block text-[9px] font-semibold text-gray-500">Print PPI</label>
-            <select id="ppi" class="h-6 w-full rounded border border-gray-300 bg-white px-1 text-[10px]">
-              <option value="300">300 PPI</option>
-              <option value="450">450 PPI</option>
-              <option value="600">600 PPI</option>
-            </select>
-          </div>
+        <div id="viewport">
+            <canvas id="viewportCanvas"></canvas>
         </div>
-      </div>
 
-      <!-- GRID GROUP -->
-      <div class="sidebar-group" id="grpGrid">
-        <button type="button" class="sidebar-group-header" onclick="toggleGroup('grpGrid')">
-          <span>Grid & Alignment</span>
-          <span class="group-arrow">▼</span>
-        </button>
-        <div class="sidebar-group-body">
-          <div>
-            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Rows</label>
-            <div class="flex h-6 overflow-hidden rounded border border-gray-300 bg-white">
-              <button id="rowsMinus" type="button" class="w-5 shrink-0 border-r border-gray-200 text-xs">−</button>
-              <input id="rows" type="text" inputmode="numeric" autocomplete="off" value="1" class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
-              <button id="rowsPlus" type="button" class="w-5 shrink-0 border-l border-gray-200 text-xs">+</button>
-            </div>
-          </div>
+        <div id="topRuler"></div>
+        <div id="leftRuler"></div>
+        <div id="rulerCorner"></div>
 
-          <div>
-            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Columns</label>
-            <div class="flex h-6 overflow-hidden rounded border border-gray-300 bg-white">
-              <button id="columnsMinus" type="button" class="w-5 shrink-0 border-r border-gray-200 text-xs">−</button>
-              <input id="columns" type="text" inputmode="numeric" autocomplete="off" value="6" class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
-              <button id="columnsPlus" type="button" class="w-5 shrink-0 border-l border-gray-200 text-xs">+</button>
-            </div>
-          </div>
+        <!-- COMPACT SINGLE-COLUMN PRINT LAYOUT PANEL -->
+        <aside id="layoutPanel"
+            class="absolute right-3.5 top-10 z-[70] w-48 rounded-lg border border-gray-300 bg-white p-2 shadow-2xl flex flex-col max-h-[calc(100dvh-100px)]">
+            <div class="mb-1.5 flex items-center justify-between shrink-0 pb-1 border-b border-gray-200">
+                <div class="text-[11px] font-bold leading-none text-gray-800">
+                    Print Layout
+                </div>
 
-          <div>
-            <div class="mb-0.5 flex items-center justify-between">
-              <label for="spacing" class="text-[9px] font-semibold text-gray-500">Spacing</label>
-              <select id="spacingUnit" class="h-4.5 rounded border border-gray-300 bg-white px-0.5 text-[9px] font-bold text-gray-700 outline-none">
-                <option value="mm">mm</option>
-                <option value="cm">cm</option>
-                <option value="in">in</option>
-                <option value="px">px</option>
-              </select>
+                <button id="closeLayoutButton" type="button"
+                    class="flex h-5 w-5 items-center justify-center rounded-[4px] border border-gray-300 bg-white p-0 text-xs leading-none text-gray-700 hover:bg-gray-100">×</button>
             </div>
 
-            <div class="flex h-6 overflow-hidden rounded border border-gray-300 bg-white mb-1">
-              <button id="spacingMinus" type="button" class="w-5 shrink-0 border-r border-gray-200 text-xs">−</button>
-              <input id="spacing" type="text" inputmode="decimal" autocomplete="off" value="2" class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
-              <button id="spacingPlus" type="button" class="w-5 shrink-0 border-l border-gray-200 text-xs">+</button>
+            <div class="flex-1 overflow-y-auto pr-0.5 space-y-1.5" style="scrollbar-width:thin;">
+
+                <!-- PHOTO DIMENSIONS GROUP (LOCKED ASPECT RATIO) -->
+                <div class="sidebar-group" id="grpDimensions">
+                    <button type="button" class="sidebar-group-header" onclick="toggleGroup('grpDimensions')">
+                        <span>Image Render Size</span>
+                        <span class="group-arrow">▼</span>
+                    </button>
+                    <div class="sidebar-group-body">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] font-semibold text-gray-500">Unit</span>
+                            <select id="renderSizeUnit"
+                                class="h-5 rounded border border-gray-300 bg-white px-1 text-[9px] font-bold text-gray-700 outline-none">
+                                <option value="mm">mm</option>
+                                <option value="cm">cm</option>
+                                <option value="in">in</option>
+                                <option value="px">px</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <div>
+                                <label for="renderWidth"
+                                    class="mb-0.5 block text-[9px] font-semibold text-gray-500">Width</label>
+                                <input id="renderWidth" type="text" inputmode="decimal"
+                                    class="h-6 w-full rounded border border-gray-300 px-1 text-center text-[10px] outline-none">
+                            </div>
+                            <div>
+                                <label for="renderHeight"
+                                    class="mb-0.5 block text-[9px] font-semibold text-gray-500">Height</label>
+                                <input id="renderHeight" type="text" inputmode="decimal"
+                                    class="h-6 w-full rounded border border-gray-300 px-1 text-center text-[10px] outline-none">
+                            </div>
+                        </div>
+                        <div class="text-[8px] text-gray-400 italic text-center">Ratio locked with active photo</div>
+                    </div>
+                </div>
+
+                <!-- PAPER GROUP -->
+                <div class="sidebar-group" id="grpPaper">
+                    <button type="button" class="sidebar-group-header" onclick="toggleGroup('grpPaper')">
+                        <span>Paper Setup</span>
+                        <span class="group-arrow">▼</span>
+                    </button>
+                    <div class="sidebar-group-body">
+                        <div>
+                            <label for="paperSize"
+                                class="mb-0.5 block text-[9px] font-semibold text-gray-500">Size</label>
+                            <select id="paperSize"
+                                class="h-6 w-full rounded border border-gray-300 bg-white px-1 text-[10px] text-gray-700 outline-none">
+                                <option value="A4">A4</option>
+                                <option value="4x6">4 × 6</option>
+                                <option value="5x7">5 × 7</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Orientation</label>
+                            <button id="portraitButton" type="button"
+                                class="mb-1 h-6 w-full rounded border border-gray-900 bg-gray-900 px-1 text-[10px] font-medium text-white">Portrait</button>
+                            <button id="landscapeButton" type="button"
+                                class="h-6 w-full rounded border border-gray-300 bg-white px-1 text-[10px] font-medium text-gray-700">Landscape</button>
+                        </div>
+
+                        <div>
+                            <label for="ppi" class="mb-0.5 block text-[9px] font-semibold text-gray-500">Print
+                                PPI</label>
+                            <select id="ppi"
+                                class="h-6 w-full rounded border border-gray-300 bg-white px-1 text-[10px]">
+                                <option value="300">300 PPI</option>
+                                <option value="450">450 PPI</option>
+                                <option value="600">600 PPI</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRID GROUP -->
+                <div class="sidebar-group" id="grpGrid">
+                    <button type="button" class="sidebar-group-header" onclick="toggleGroup('grpGrid')">
+                        <span>Grid & Alignment</span>
+                        <span class="group-arrow">▼</span>
+                    </button>
+                    <div class="sidebar-group-body">
+                        <div>
+                            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Rows</label>
+                            <div class="flex h-6 overflow-hidden rounded border border-gray-300 bg-white">
+                                <button id="rowsMinus" type="button"
+                                    class="w-5 shrink-0 border-r border-gray-200 text-xs">−</button>
+                                <input id="rows" type="text" inputmode="numeric" autocomplete="off" value="1"
+                                    class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
+                                <button id="rowsPlus" type="button"
+                                    class="w-5 shrink-0 border-l border-gray-200 text-xs">+</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Columns</label>
+                            <div class="flex h-6 overflow-hidden rounded border border-gray-300 bg-white">
+                                <button id="columnsMinus" type="button"
+                                    class="w-5 shrink-0 border-r border-gray-200 text-xs">−</button>
+                                <input id="columns" type="text" inputmode="numeric" autocomplete="off" value="6"
+                                    class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
+                                <button id="columnsPlus" type="button"
+                                    class="w-5 shrink-0 border-l border-gray-200 text-xs">+</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="mb-0.5 flex items-center justify-between">
+                                <label for="spacing" class="text-[9px] font-semibold text-gray-500">Spacing</label>
+                                <select id="spacingUnit"
+                                    class="h-4.5 rounded border border-gray-300 bg-white px-0.5 text-[9px] font-bold text-gray-700 outline-none">
+                                    <option value="mm">mm</option>
+                                    <option value="cm">cm</option>
+                                    <option value="in">in</option>
+                                    <option value="px">px</option>
+                                </select>
+                            </div>
+
+                            <div class="flex h-6 overflow-hidden rounded border border-gray-300 bg-white mb-1">
+                                <button id="spacingMinus" type="button"
+                                    class="w-5 shrink-0 border-r border-gray-200 text-xs">−</button>
+                                <input id="spacing" type="text" inputmode="decimal" autocomplete="off" value="2"
+                                    class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
+                                <button id="spacingPlus" type="button"
+                                    class="w-5 shrink-0 border-l border-gray-200 text-xs">+</button>
+                            </div>
+
+                            <div class="grid grid-cols-4 gap-0.5 text-center">
+                                <button type="button"
+                                    class="spacing-preset rounded bg-gray-100 py-0.5 text-[8px] font-medium text-gray-600 hover:bg-gray-200"
+                                    data-val="0">0</button>
+                                <button type="button"
+                                    class="spacing-preset rounded bg-gray-100 py-0.5 text-[8px] font-medium text-gray-600 hover:bg-gray-200"
+                                    data-val="1">1</button>
+                                <button type="button"
+                                    class="spacing-preset rounded bg-gray-100 py-0.5 text-[8px] font-medium text-gray-600 hover:bg-gray-200"
+                                    data-val="2">2</button>
+                                <button type="button"
+                                    class="spacing-preset rounded bg-gray-100 py-0.5 text-[8px] font-medium text-gray-600 hover:bg-gray-200"
+                                    data-val="5">5</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STYLING GROUP -->
+                <div class="sidebar-group" id="grpStyle">
+                    <button type="button" class="sidebar-group-header" onclick="toggleGroup('grpStyle')">
+                        <span>Border & Colors</span>
+                        <span class="group-arrow">▼</span>
+                    </button>
+                    <div class="sidebar-group-body">
+                        <div>
+                            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Border Width (px)</label>
+                            <div class="flex h-6 overflow-hidden rounded border border-gray-300 bg-white">
+                                <button id="borderMinus" type="button"
+                                    class="w-5 shrink-0 border-r border-gray-200 text-xs">−</button>
+                                <input id="borderWidth" type="text" inputmode="numeric" autocomplete="off" value="5"
+                                    class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
+                                <button id="borderPlus" type="button"
+                                    class="w-5 shrink-0 border-l border-gray-200 text-xs">+</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="borderColor" class="mb-0.5 block text-[9px] font-semibold text-gray-500">Border
+                                Color</label>
+                            <div class="flex items-center gap-1">
+                                <input id="borderColor" type="color" value="#000000"
+                                    class="h-6 w-7 cursor-pointer rounded border border-gray-300 bg-white p-0.5">
+                                <span id="borderColorText" class="text-[9px] font-mono text-gray-600">#000000</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="imageBgColor" class="mb-0.5 block text-[9px] font-semibold text-gray-500">Image
+                                Background</label>
+                            <div class="flex items-center gap-1">
+                                <input id="imageBgColor" type="color" value="#ffffff"
+                                    class="h-6 w-7 cursor-pointer rounded border border-gray-300 bg-white p-0.5">
+                                <span id="imageBgColorText" class="text-[9px] font-mono text-gray-600">#ffffff</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Image Orientation</label>
+                            <button id="rotateImageButton" type="button"
+                                class="flex h-6 w-full items-center justify-center gap-1 rounded border border-gray-300 bg-white px-1 text-[10px] font-semibold text-gray-700">
+                                <span>↶</span>
+                                <span id="rotateText">Rotate −90°</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PHYSICAL SCREEN SCALE WITH GROUP BUTTON (INPUT + POPPING PRESET DROPDOWN) -->
+                <div class="sidebar-group" id="grpScreenScale">
+                    <button type="button" class="sidebar-group-header" onclick="toggleGroup('grpScreenScale')">
+                        <span>Screen Ruler Scale</span>
+                        <span class="group-arrow">▼</span>
+                    </button>
+                    <div class="sidebar-group-body">
+                        <div class="flex items-center justify-between text-[9px] font-semibold text-gray-500">
+                            <span>Diagonal Size</span>
+                            <span id="screenAutoBadge"
+                                class="text-[8px] bg-slate-200 text-slate-700 px-1 py-0.5 rounded">Auto</span>
+                        </div>
+
+                        <!-- Group Button: Input on left, Dropdown Down Arrow on right -->
+                        <div class="relative flex h-6 w-full rounded border border-gray-300 bg-white">
+                            <input id="screenDiagInput" type="text" inputmode="decimal" placeholder="e.g. 6.67"
+                                class="min-w-0 flex-1 border-0 px-1.5 text-center text-[10px] font-bold text-gray-800 outline-none">
+                            <span class="flex items-center text-[9px] font-bold text-gray-400 pr-1">in</span>
+
+                            <!-- Group Arrow Dropdown Trigger -->
+                            <button id="screenPresetToggleBtn" type="button"
+                                class="w-6 shrink-0 border-l border-gray-200 bg-gray-50 text-[10px] text-gray-600 hover:bg-gray-100 flex items-center justify-center cursor-pointer"
+                                title="Select a common device diagonal size">▼</button>
+                        </div>
+
+                        <div class="flex gap-1 mt-0.5">
+                            <button id="screenDiagApplyBtn" type="button"
+                                class="flex-1 h-5 rounded bg-gray-900 text-white text-[9px] font-semibold">Apply</button>
+                            <button id="screenDiagResetBtn" type="button"
+                                class="h-5 px-1.5 rounded border border-gray-300 bg-white text-gray-700 text-[9px] font-semibold hover:bg-gray-100">Reset</button>
+                        </div>
+                        <div id="screenPpiSummary" class="text-[8px] text-gray-500 text-center font-mono">-- px/mm</div>
+                    </div>
+                </div>
+
             </div>
 
-            <div class="grid grid-cols-4 gap-0.5 text-center">
-              <button type="button" class="spacing-preset rounded bg-gray-100 py-0.5 text-[8px] font-medium text-gray-600 hover:bg-gray-200" data-val="0">0</button>
-              <button type="button" class="spacing-preset rounded bg-gray-100 py-0.5 text-[8px] font-medium text-gray-600 hover:bg-gray-200" data-val="1">1</button>
-              <button type="button" class="spacing-preset rounded bg-gray-100 py-0.5 text-[8px] font-medium text-gray-600 hover:bg-gray-200" data-val="2">2</button>
-              <button type="button" class="spacing-preset rounded bg-gray-100 py-0.5 text-[8px] font-medium text-gray-600 hover:bg-gray-200" data-val="5">5</button>
+            <div class="shrink-0 border-t border-gray-200 pt-1.5 mt-1">
+                <label class="flex items-center justify-between text-[9px] font-semibold text-gray-500">
+                    <span>Save Grid Settings</span>
+                    <input id="saveSettingsToggle" type="checkbox" class="accent-gray-900">
+                </label>
             </div>
-          </div>
+
+        </aside>
+
+        <!-- SCREEN PRESET MENU: Fixed-positioned to float cleanly in view to the left of the sidebar -->
+        <div id="screenPresetMenu"
+            class="fixed z-[1000] hidden w-48 rounded-lg border border-gray-300 bg-white shadow-2xl text-[10px] font-medium py-1.5 max-h-56 overflow-y-auto">
+            <div class="px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-gray-400">Mobile Phones</div>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="6.67"><span>POCO X7 Pro</span><span
+                    class="font-mono text-gray-400 text-[9px]">6.67"</span></button>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="6.1"><span>iPhone Standard</span><span
+                    class="font-mono text-gray-400 text-[9px]">6.1"</span></button>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="6.7"><span>iPhone Plus / Max</span><span
+                    class="font-mono text-gray-400 text-[9px]">6.7"</span></button>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="6.8"><span>Galaxy Ultra</span><span
+                    class="font-mono text-gray-400 text-[9px]">6.8"</span></button>
+
+            <div
+                class="px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-gray-400 border-t border-gray-100 mt-1">
+                Laptops & Tablets</div>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="10.9"><span>iPad / Tablet</span><span
+                    class="font-mono text-gray-400 text-[9px]">10.9"</span></button>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="14.0"><span>14.0" Laptop</span><span
+                    class="font-mono text-gray-400 text-[9px]">14.0"</span></button>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="15.6"><span>15.6" Laptop</span><span
+                    class="font-mono text-gray-400 text-[9px]">15.6"</span></button>
+
+            <div
+                class="px-2.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-gray-400 border-t border-gray-100 mt-1">
+                Desktop Monitors</div>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="21.5"><span>21.5" Monitor</span><span
+                    class="font-mono text-gray-400 text-[9px]">21.5"</span></button>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="24.0"><span>24.0" Monitor</span><span
+                    class="font-mono text-gray-400 text-[9px]">24.0"</span></button>
+            <button type="button"
+                class="w-full text-left px-2.5 py-1 hover:bg-sky-50 hover:text-sky-700 flex justify-between items-center cursor-pointer"
+                data-size="27.0"><span>27.0" Monitor</span><span
+                    class="font-mono text-gray-400 text-[9px]">27.0"</span></button>
         </div>
-      </div>
 
-      <!-- STYLING GROUP -->
-      <div class="sidebar-group" id="grpStyle">
-        <button type="button" class="sidebar-group-header" onclick="toggleGroup('grpStyle')">
-          <span>Border & Colors</span>
-          <span class="group-arrow">▼</span>
-        </button>
-        <div class="sidebar-group-body">
-          <div>
-            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Border Width (px)</label>
-            <div class="flex h-6 overflow-hidden rounded border border-gray-300 bg-white">
-              <button id="borderMinus" type="button" class="w-5 shrink-0 border-r border-gray-200 text-xs">−</button>
-              <input id="borderWidth" type="text" inputmode="numeric" autocomplete="off" value="5" class="min-w-0 w-full border-0 px-1 text-center text-[10px] outline-none">
-              <button id="borderPlus" type="button" class="w-5 shrink-0 border-l border-gray-200 text-xs">+</button>
+        <button id="showLayoutButton" type="button"
+            class="absolute right-3.5 top-10 z-[65] hidden h-8 rounded-md border border-gray-300 bg-white px-2.5 text-[11px] font-semibold leading-none text-gray-700 shadow-lg">Layout</button>
+
+        <!-- IMAGE TRAY -->
+        <div id="imageTray" class="hidden">
+            <button id="trayCloseBtn" type="button" title="Close Tray">×</button>
+            <div id="thumbnailList"></div>
+        </div>
+
+        <!-- FLOATING CONTEXT MENU -->
+        <div id="globalContextMenu">
+            <button type="button" class="context-menu-item" id="ctxCropBtn"><span>✎</span><span>Crop &
+                    Align</span></button>
+            <button type="button" class="context-menu-item"
+                id="ctxDownloadBtn"><span>⬇</span><span>Download</span></button>
+            <button type="button" class="context-menu-item" id="ctxToggleVisBtn"><span
+                    id="ctxToggleVisIcon">○</span><span id="ctxToggleVisText">Hide from Grid</span></button>
+            <button type="button" class="context-menu-item danger"
+                id="ctxRemoveBtn"><span>×</span><span>Remove</span></button>
+        </div>
+
+        <button id="imageTrayToggle" type="button"
+            class="fixed z-50 bottom-16 left-3 h-7 rounded-md border border-gray-300 bg-white/95 px-2.5 text-[10px] font-semibold shadow-md hidden">Images</button>
+
+        <!-- EMPTY STATE -->
+        <div id="emptyState" class="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
+            <div
+                class="pointer-events-auto flex flex-col items-center gap-2 rounded-xl border border-gray-300 bg-white/96 px-5 py-4 shadow-xl">
+                <div class="text-sm font-semibold text-gray-800">
+                    Upload image to begin
+                </div>
+                <div class="text-[10px] text-gray-500">
+                    AI Smart Crop automatically levels eye tilt and fits photo to official passport dimensions
+                </div>
+                <label
+                    class="flex h-9 cursor-pointer items-center justify-center rounded-md border border-gray-900 bg-gray-900 px-4 text-[11px] font-semibold text-white hover:bg-gray-800">
+                    Upload Image
+                    <input id="emptyUploadInput" type="file" accept="image/jpeg,image/png,image/webp" multiple
+                        class="hidden">
+                </label>
             </div>
-          </div>
+        </div>
 
-          <div>
-            <label for="borderColor" class="mb-0.5 block text-[9px] font-semibold text-gray-500">Border Color</label>
-            <div class="flex items-center gap-1">
-              <input id="borderColor" type="color" value="#000000" class="h-6 w-7 cursor-pointer rounded border border-gray-300 bg-white p-0.5">
-              <span id="borderColorText" class="text-[9px] font-mono text-gray-600">#000000</span>
+        <div id="status"
+            class="pointer-events-none absolute bottom-4 left-10 z-40 rounded-md border border-gray-300 bg-white/95 px-2 py-1.5 text-[10px] leading-none text-gray-600 max-sm:hidden">
+            Ready</div>
+
+        <!-- BOTTOM TOOLBAR -->
+        <div
+            class="absolute bottom-3 left-1/2 z-[60] flex w-[calc(100vw-16px)] max-w-200 -translate-x-1/2 items-center rounded-lg border border-gray-300 bg-white/96 p-1 shadow-xl">
+            <div class="mx-auto flex items-center gap-0.5 overflow-x-auto">
+                <button id="zoomOut"
+                    class="h-7 w-7 shrink-0 rounded-[5px] border border-gray-300 bg-white text-xs">−</button>
+                <input id="zoomText" type="text" inputmode="decimal" value="100%" aria-label="Zoom percentage"
+                    class="h-7 w-12 shrink-0 rounded-[5px] border border-gray-300 bg-white px-1 text-center text-[10px] font-semibold outline-none">
+                <button id="zoomIn"
+                    class="h-7 w-7 shrink-0 rounded-[5px] border border-gray-300 bg-white text-xs">+</button>
+                <button id="fitButton"
+                    class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-2 text-[10px] font-semibold">Fit</button>
+                <button id="actualButton"
+                    class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-2 text-[10px] font-semibold"
+                    title="View in 100% Real Physical Size">100%</button>
+
+                <select id="rulerUnit"
+                    class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-1.5 text-[10px] font-semibold">
+                    <option value="mm">mm</option>
+                    <option value="cm">cm</option>
+                    <option value="in">in</option>
+                    <option value="px">px</option>
+                </select>
+
+                <button id="layoutButton"
+                    class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-2 text-[10px] font-semibold">Layout</button>
             </div>
-          </div>
 
-          <div>
-            <label for="imageBgColor" class="mb-0.5 block text-[9px] font-semibold text-gray-500">Image Background</label>
-            <div class="flex items-center gap-1">
-              <input id="imageBgColor" type="color" value="#ffffff" class="h-6 w-7 cursor-pointer rounded border border-gray-300 bg-white p-0.5">
-              <span id="imageBgColorText" class="text-[9px] font-mono text-gray-600">#ffffff</span>
-            </div>
-          </div>
-
-          <div>
-            <label class="mb-0.5 block text-[9px] font-semibold text-gray-500">Image Orientation</label>
-            <button id="rotateImageButton" type="button" class="flex h-6 w-full items-center justify-center gap-1 rounded border border-gray-300 bg-white px-1 text-[10px] font-semibold text-gray-700">
-              <span>↶</span>
-              <span id="rotateText">Rotate −90°</span>
+            <!-- ZIP Download All Cropped Images -->
+            <button id="batchZipBtn"
+                class="ml-1 h-8 shrink-0 rounded-md border border-slate-300 bg-slate-100 hover:bg-slate-200 px-2 text-[10px] font-bold text-slate-700 hidden"
+                title="Download all cropped photos as a ZIP archive">
+                ZIP
             </button>
-          </div>
+
+            <button id="downloadButton"
+                class="ml-1 h-8 shrink-0 rounded-md border border-gray-300 bg-white px-2.5 text-[10px] font-semibold">
+                Download
+            </button>
         </div>
-      </div>
+
+        <!-- SMART CROP MODAL -->
+        <section id="smartCropModal">
+            <header
+                class="flex min-h-12 shrink-0 items-center justify-between border-b border-slate-700 bg-slate-900/90 px-4 py-2 text-white flex-wrap gap-2">
+                <div class="flex items-center gap-2 overflow-hidden flex-wrap">
+                    <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0"></span>
+                    <div class="text-xs font-bold truncate" id="smartCropModalTitle">AI Smart Crop</div>
+
+                    <!-- Individual Preset Ratio Dropdown with Custom Ratio Support -->
+                    <select id="smartCropPresetSelect"
+                        class="h-6.5 rounded bg-slate-800 border border-slate-600 px-1 text-[11px] text-sky-300 font-bold outline-none cursor-pointer">
+                        <option value="iso">35×45 mm (7:9)</option>
+                        <option value="iso3035">30×35 mm (6:7)</option>
+                        <option value="us">2×2 in (1:1)</option>
+                        <option value="portrait34">3:4 Ratio</option>
+                        <option value="custom">Custom Ratio / Size</option>
+                    </select>
+
+                    <!-- Custom Ratio & Dimension Unit Controls -->
+                    <div id="customRatioInputs" class="hidden items-center gap-1.5 flex-wrap">
+                        <div class="flex items-center gap-1">
+                            <input id="customRatioW" type="text" inputmode="decimal" value="35"
+                                class="w-10 h-6.5 bg-slate-800 border border-slate-600 text-center text-[10px] font-bold text-white rounded outline-none"
+                                title="Custom Width">
+                            <span class="text-slate-400 text-xs font-bold">×</span>
+                            <input id="customRatioH" type="text" inputmode="decimal" value="45"
+                                class="w-10 h-6.5 bg-slate-800 border border-slate-600 text-center text-[10px] font-bold text-white rounded outline-none"
+                                title="Custom Height">
+                        </div>
+
+                        <!-- Unit Selector: mm, cm, in, px -->
+                        <div class="flex items-center gap-1">
+                            <select id="customUnitSelect"
+                                class="h-6.5 rounded bg-slate-800 border border-slate-600 px-1 text-[10px] text-sky-300 font-bold outline-none cursor-pointer"
+                                title="Custom Dimension Unit">
+                                <option value="mm">mm</option>
+                                <option value="cm">cm</option>
+                                <option value="in">in</option>
+                                <option value="px">px</option>
+                            </select>
+                        </div>
+
+                        <!-- PPI Select (Group Button: Input + Preset Dropdown) -->
+                        <div id="customPpiContainer" class="flex items-center">
+                            <div class="flex h-6.5 rounded bg-slate-800 border border-slate-600 overflow-hidden"
+                                title="PPI resolution for metric/inch sizing">
+                                <input id="customPpiInput" type="text" inputmode="numeric" value="300"
+                                    class="w-11 border-0 bg-transparent px-1 text-center text-[10px] font-bold text-amber-300 outline-none"
+                                    title="Custom PPI">
+                                <span class="flex items-center text-[8px] font-bold text-slate-400 pr-0.5">PPI</span>
+                                <select id="customPpiSelect"
+                                    class="border-l border-slate-700 bg-slate-800 px-0.5 text-[9px] text-slate-300 font-bold outline-none cursor-pointer"
+                                    title="Select standard PPI">
+                                    <option value="" disabled selected hidden>▼</option>
+                                    <option value="300">300</option>
+                                    <option value="450">450</option>
+                                    <option value="600">600</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                    <!-- Separate Save Settings for Crop Module -->
+                    <label
+                        class="flex items-center gap-1 text-[10px] text-slate-300 cursor-pointer select-none font-medium bg-slate-800/90 px-2 py-1 rounded-md border border-slate-700"
+                        title="Remember Crop Module settings independently">
+                        <span>Save Settings</span>
+                        <input type="checkbox" id="saveCropSettingsToggle"
+                            class="accent-sky-500 rounded cursor-pointer">
+                    </label>
+
+                    <!-- Individual Auto-Deskew Switch -->
+                    <label
+                        class="flex items-center gap-1.5 text-[11px] text-slate-300 cursor-pointer select-none font-medium bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700"
+                        title="Automatic eye-level tilt alignment">
+                        <input type="checkbox" id="smartAutoDeskew" checked
+                            class="accent-sky-500 rounded cursor-pointer">
+                        <span>Auto Tilt</span>
+                    </label>
+
+                    <button id="smartResetBtn"
+                        class="h-7 rounded border border-slate-600 bg-slate-800 px-2 text-[10px] font-semibold text-slate-200 hover:bg-slate-700"
+                        title="Reset this image to AI defaults (R)">
+                        Reset
+                    </button>
+                    <button id="smartCancelBtn"
+                        class="h-7 rounded border border-slate-600 bg-slate-800 px-2 text-[10px] font-semibold text-slate-200 hover:bg-slate-700">
+                        Done
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex min-h-0 flex-1 items-center justify-center p-3 overflow-hidden">
+                <canvas id="smartCropStage" class="smart-crop-stage rounded-lg border-2 border-slate-600"></canvas>
+            </div>
+
+            <footer
+                class="flex flex-col gap-2 shrink-0 border-t border-slate-800 bg-slate-900/95 px-4 py-3 text-white max-w-xl mx-auto w-full">
+                <div class="grid grid-cols-4 gap-1 bg-slate-800 p-1 rounded-lg">
+                    <button class="smart-tab-btn py-1 px-2 rounded text-[11px] font-semibold bg-sky-600 text-white"
+                        data-tab="scale">Zoom</button>
+                    <button
+                        class="smart-tab-btn py-1 px-2 rounded text-[11px] font-medium text-slate-300 hover:text-white"
+                        data-tab="offsetY">Vertical</button>
+                    <button
+                        class="smart-tab-btn py-1 px-2 rounded text-[11px] font-medium text-slate-300 hover:text-white"
+                        data-tab="offsetX">Horizontal</button>
+                    <button
+                        class="smart-tab-btn py-1 px-2 rounded text-[11px] font-medium text-slate-300 hover:text-white"
+                        data-tab="rotDeg">Tilt</button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="smartDecBtn"
+                        class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg border border-slate-700 text-sm select-none"
+                        title="Decrease (−)">−</button>
+                    <div class="flex-1 flex flex-col justify-center">
+                        <div class="flex justify-between text-[10px] font-semibold text-slate-300 mb-0.5">
+                            <span id="smartParamLabel">Zoom</span>
+                            <span id="smartParamVal" class="text-sky-400 font-bold">1.00x</span>
+                        </div>
+                        <input type="range" id="smartSlider"
+                            class="w-full h-1.5 bg-slate-700 rounded appearance-none cursor-pointer accent-sky-500">
+                    </div>
+                    <button id="smartIncBtn"
+                        class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg border border-slate-700 text-sm select-none"
+                        title="Increase (+)">+</button>
+
+                    <label
+                        class="flex items-center justify-center h-8 px-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 cursor-pointer select-none"
+                        title="Lock adjustments on this tool">
+                        <input type="checkbox" id="smartToolLockCheckbox"
+                            class="w-4 h-4 accent-sky-500 rounded cursor-pointer">
+                    </label>
+
+                    <button id="smartApplyBtn"
+                        class="ml-0.5 h-8 shrink-0 rounded-lg border border-sky-600 bg-sky-600 px-3 text-xs font-bold text-white hover:bg-sky-500 flex items-center justify-center min-w-8">
+                        <span id="smartApplyText" class="text-sm leading-none">✓</span>
+                    </button>
+                </div>
+            </footer>
+        </section>
 
     </div>
 
-    <div class="shrink-0 border-t border-gray-200 pt-1.5 mt-1">
-      <label class="flex items-center justify-between text-[9px] font-semibold text-gray-500">
-        <span>Save Settings</span>
-        <input id="saveSettingsToggle" type="checkbox" class="accent-gray-900">
-      </label>
-    </div>
-
-  </aside>
-
-  <button
-    id="showLayoutButton"
-    type="button"
-    class="absolute right-3.5 top-10 z-[65] hidden h-8 rounded-md border border-gray-300 bg-white px-2.5 text-[11px] font-semibold leading-none text-gray-700 shadow-lg"
-  >Layout</button>
-
-  <!-- IMAGE TRAY -->
-  <div id="imageTray" class="hidden">
-    <button id="trayCloseBtn" type="button" title="Close Tray">×</button>
-    <div id="thumbnailList"></div>
-  </div>
-
-  <!-- FLOATING CONTEXT MENU -->
-  <div id="globalContextMenu">
-    <button type="button" class="context-menu-item" id="ctxCropBtn"><span>✎</span><span>Crop & Align</span></button>
-    <button type="button" class="context-menu-item" id="ctxDownloadBtn"><span>⬇</span><span>Download</span></button>
-    <button type="button" class="context-menu-item" id="ctxToggleVisBtn"><span id="ctxToggleVisIcon">○</span><span id="ctxToggleVisText">Hide from Grid</span></button>
-    <button type="button" class="context-menu-item danger" id="ctxRemoveBtn"><span>×</span><span>Remove</span></button>
-  </div>
-
-  <button
-    id="imageTrayToggle"
-    type="button"
-    class="fixed z-50 bottom-16 left-3 h-7 rounded-md border border-gray-300 bg-white/95 px-2.5 text-[10px] font-semibold shadow-md hidden"
-  >Images</button>
-
-  <!-- EMPTY STATE -->
-  <div id="emptyState" class="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
-    <div class="pointer-events-auto flex flex-col items-center gap-2 rounded-xl border border-gray-300 bg-white/96 px-5 py-4 shadow-xl">
-      <div class="text-sm font-semibold text-gray-800">
-        Upload image to begin
-      </div>
-      <div class="text-[10px] text-gray-500">
-        AI Smart Crop automatically levels eye tilt and fits photo to official passport dimensions
-      </div>
-      <label class="flex h-9 cursor-pointer items-center justify-center rounded-md border border-gray-900 bg-gray-900 px-4 text-[11px] font-semibold text-white hover:bg-gray-800">
-        Upload Image
-        <input id="emptyUploadInput" type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden">
-      </label>
-    </div>
-  </div>
-
-  <div
-    id="status"
-    class="pointer-events-none absolute bottom-4 left-10 z-40 rounded-md border border-gray-300 bg-white/95 px-2 py-1.5 text-[10px] leading-none text-gray-600 max-sm:hidden"
-  >Ready</div>
-
-  <!-- BOTTOM TOOLBAR -->
-  <div class="absolute bottom-3 left-1/2 z-[60] flex w-[calc(100vw-16px)] max-w-200 -translate-x-1/2 items-center rounded-lg border border-gray-300 bg-white/96 p-1 shadow-xl">
-    <div class="mx-auto flex items-center gap-0.5 overflow-x-auto">
-      <button id="zoomOut" class="h-7 w-7 shrink-0 rounded-[5px] border border-gray-300 bg-white text-xs">−</button>
-      <input id="zoomText" type="text" inputmode="decimal" value="100%" aria-label="Zoom percentage" class="h-7 w-12 shrink-0 rounded-[5px] border border-gray-300 bg-white px-1 text-center text-[10px] font-semibold outline-none">
-      <button id="zoomIn" class="h-7 w-7 shrink-0 rounded-[5px] border border-gray-300 bg-white text-xs">+</button>
-      <button id="fitButton" class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-2 text-[10px] font-semibold">Fit</button>
-      <button id="actualButton" class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-2 text-[10px] font-semibold">100%</button>
-
-      <select id="rulerUnit" class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-1.5 text-[10px] font-semibold">
-        <option value="mm">mm</option>
-        <option value="cm">cm</option>
-        <option value="in">in</option>
-        <option value="px">px</option>
-      </select>
-
-      <button id="layoutButton" class="h-8 shrink-0 rounded-md border border-gray-300 bg-white px-2 text-[10px] font-semibold">Layout</button>
-    </div>
-
-    <!-- ZIP Download All Cropped Images -->
-    <button id="batchZipBtn" class="ml-1 h-8 shrink-0 rounded-md border border-slate-300 bg-slate-100 hover:bg-slate-200 px-2 text-[10px] font-bold text-slate-700 hidden" title="Download all cropped photos as a ZIP archive">
-      ZIP
-    </button>
-
-    <button id="downloadButton" class="ml-1 h-8 shrink-0 rounded-md border border-gray-300 bg-white px-2.5 text-[10px] font-semibold">
-      Download
-    </button>
-  </div>
-
-  <!-- SMART CROP MODAL -->
-  <section id="smartCropModal">
-    <header class="flex min-h-12 shrink-0 items-center justify-between border-b border-slate-700 bg-slate-900/90 px-4 py-2 text-white flex-wrap gap-2">
-      <div class="flex items-center gap-2 overflow-hidden">
-        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0"></span>
-        <div class="text-xs font-bold truncate" id="smartCropModalTitle">AI Smart Crop</div>
-
-        <!-- Individual Preset Ratio Dropdown with Custom Ratio Support -->
-        <select id="smartCropPresetSelect" class="h-6.5 rounded bg-slate-800 border border-slate-600 px-1 text-[11px] text-sky-300 font-bold outline-none cursor-pointer">
-          <option value="iso">35×45 mm (7:9)</option>
-          <option value="us">2×2 in (1:1)</option>
-          <option value="portrait34">3:4 Ratio</option>
-          <option value="custom">Custom Ratio</option>
-        </select>
-
-        <!-- Custom Ratio Input Controls -->
-        <div id="customRatioInputs" class="hidden items-center gap-1">
-          <input id="customRatioW" type="text" inputmode="numeric" value="35" class="w-8 h-6 bg-slate-800 border border-slate-600 text-center text-[10px] font-bold text-white rounded outline-none" title="Width Ratio">
-          <span class="text-slate-400 text-xs font-bold">:</span>
-          <input id="customRatioH" type="text" inputmode="numeric" value="45" class="w-8 h-6 bg-slate-800 border border-slate-600 text-center text-[10px] font-bold text-white rounded outline-none" title="Height Ratio">
-        </div>
-      </div>
-
-      <div class="flex items-center gap-2 shrink-0">
-        <!-- Individual Auto-Deskew Switch -->
-        <label class="flex items-center gap-1.5 text-[11px] text-slate-300 cursor-pointer select-none font-medium bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700" title="Automatic eye-level tilt alignment">
-          <input type="checkbox" id="smartAutoDeskew" checked class="accent-sky-500 rounded cursor-pointer">
-          <span>Auto Tilt</span>
-        </label>
-
-        <button id="smartResetBtn" class="h-7 rounded border border-slate-600 bg-slate-800 px-2 text-[10px] font-semibold text-slate-200 hover:bg-slate-700" title="Reset this image to AI defaults (R)">
-          Reset
-        </button>
-        <button id="smartCancelBtn" class="h-7 rounded border border-slate-600 bg-slate-800 px-2 text-[10px] font-semibold text-slate-200 hover:bg-slate-700">
-          Done
-        </button>
-      </div>
-    </header>
-
-    <div class="flex min-h-0 flex-1 items-center justify-center p-3 overflow-hidden">
-      <canvas id="smartCropStage" class="smart-crop-stage rounded-lg border-2 border-slate-600"></canvas>
-    </div>
-
-    <footer class="flex flex-col gap-2 shrink-0 border-t border-slate-800 bg-slate-900/95 px-4 py-3 text-white max-w-xl mx-auto w-full">
-      <div class="grid grid-cols-4 gap-1 bg-slate-800 p-1 rounded-lg">
-        <button class="smart-tab-btn py-1 px-2 rounded text-[11px] font-semibold bg-sky-600 text-white" data-tab="scale">Zoom</button>
-        <button class="smart-tab-btn py-1 px-2 rounded text-[11px] font-medium text-slate-300 hover:text-white" data-tab="offsetY">Vertical</button>
-        <button class="smart-tab-btn py-1 px-2 rounded text-[11px] font-medium text-slate-300 hover:text-white" data-tab="offsetX">Horizontal</button>
-        <button class="smart-tab-btn py-1 px-2 rounded text-[11px] font-medium text-slate-300 hover:text-white" data-tab="rotDeg">Tilt</button>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <button id="smartDecBtn" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg border border-slate-700 text-sm select-none" title="Decrease (−)">−</button>
-        <div class="flex-1 flex flex-col justify-center">
-          <div class="flex justify-between text-[10px] font-semibold text-slate-300 mb-0.5">
-            <span id="smartParamLabel">Zoom</span>
-            <span id="smartParamVal" class="text-sky-400 font-bold">1.00x</span>
-          </div>
-          <input type="range" id="smartSlider" class="w-full h-1.5 bg-slate-700 rounded appearance-none cursor-pointer accent-sky-500">
-        </div>
-        <button id="smartIncBtn" class="w-8 h-8 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg border border-slate-700 text-sm select-none" title="Increase (+)">+</button>
-
-        <label class="flex items-center justify-center h-8 px-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 cursor-pointer select-none" title="Lock adjustments on this tool">
-          <input type="checkbox" id="smartToolLockCheckbox" class="w-4 h-4 accent-sky-500 rounded cursor-pointer">
-        </label>
-
-        <button id="smartApplyBtn" class="ml-0.5 h-8 shrink-0 rounded-lg border border-sky-600 bg-sky-600 px-3 text-xs font-bold text-white hover:bg-sky-500 flex items-center justify-center min-w-8">
-          <span id="smartApplyText" class="text-sm leading-none">✓</span>
-        </button>
-      </div>
-    </footer>
-  </section>
-
-</div>
-
-<script>
+    <script>
 /* =============================================================
    ELEMENT HELPERS
    ============================================================= */
@@ -869,6 +1172,11 @@ const smartCropPresetSelect = $("smartCropPresetSelect");
 const customRatioInputs = $("customRatioInputs");
 const customRatioW = $("customRatioW");
 const customRatioH = $("customRatioH");
+const customUnitSelect = $("customUnitSelect");
+const customPpiContainer = $("customPpiContainer");
+const customPpiInput = $("customPpiInput");
+const customPpiSelect = $("customPpiSelect");
+const saveCropSettingsToggle = $("saveCropSettingsToggle");
 const smartAutoDeskew = $("smartAutoDeskew");
 const smartCancelBtn = $("smartCancelBtn");
 const smartResetBtn = $("smartResetBtn");
@@ -881,6 +1189,15 @@ const smartDecBtn = $("smartDecBtn");
 const smartIncBtn = $("smartIncBtn");
 const smartTabBtns = document.querySelectorAll(".smart-tab-btn");
 const smartToolLockCheckbox = $("smartToolLockCheckbox");
+
+// Physical Scale & Preset Group Elements
+const screenDiagInput = $("screenDiagInput");
+const screenPresetToggleBtn = $("screenPresetToggleBtn");
+const screenPresetMenu = $("screenPresetMenu");
+const screenDiagApplyBtn = $("screenDiagApplyBtn");
+const screenDiagResetBtn = $("screenDiagResetBtn");
+const screenAutoBadge = $("screenAutoBadge");
+const screenPpiSummary = $("screenPpiSummary");
 
 
 /* =============================================================
@@ -897,6 +1214,7 @@ let ppi = DEFAULT_PPI;
 
 const PRESETS = {
   iso: { wMm: 35, hMm: 45, ratio: 35 / 45, eyeYFactor: 0.38, targetFaceRatio: 0.65, label: "35×45 mm (7:9)" },
+  iso3035: { wMm: 30, hMm: 35, ratio: 30 / 35, eyeYFactor: 0.38, targetFaceRatio: 0.65, label: "30×35 mm (6:7)" },
   us: { wMm: 50.8, hMm: 50.8, ratio: 1.0, eyeYFactor: 0.40, targetFaceRatio: 0.58, label: "2×2 in (1:1)" },
   portrait34: { wMm: 37.5, hMm: 50, ratio: 3 / 4, eyeYFactor: 0.38, targetFaceRatio: 0.62, label: "3:4 Ratio" },
   custom: { wMm: 35, hMm: 45, ratio: 35 / 45, eyeYFactor: 0.38, targetFaceRatio: 0.62, label: "Custom Ratio" }
@@ -957,6 +1275,212 @@ let gesture = null;
 
 
 /* =============================================================
+   SIDEBAR GROUP COLLAPSE PERSISTENCE
+   ============================================================= */
+
+const GROUP_STATE_KEY = "rc_layout_groups_state_v1";
+
+function readGroupStates(){
+  try {
+    return JSON.parse(localStorage.getItem(GROUP_STATE_KEY) || "{}");
+  } catch(e) { return {}; }
+}
+
+function saveGroupStates(states){
+  try {
+    localStorage.setItem(GROUP_STATE_KEY, JSON.stringify(states));
+  } catch(e) {}
+}
+
+function toggleGroup(groupId){
+  const el = $(groupId);
+  if(el){
+    el.classList.toggle("collapsed");
+    const states = readGroupStates();
+    states[groupId] = el.classList.contains("collapsed");
+    saveGroupStates(states);
+  }
+}
+
+function restoreGroupStates(){
+  const states = readGroupStates();
+  const groupIds = ["grpDimensions", "grpPaper", "grpGrid", "grpStyle", "grpScreenScale"];
+  groupIds.forEach(id => {
+    const el = $(id);
+    if(el && states[id] !== undefined){
+      el.classList.toggle("collapsed", !!states[id]);
+    }
+  });
+}
+
+
+/* =============================================================
+   PHYSICAL SCREEN SCALE & POPPING PRESET DROPDOWN
+   ============================================================= */
+
+const SCREEN_DIAG_KEY = "rc_screen_diag_inches_v1";
+
+function getAutomaticScreenPxPerMm(){
+  const isTouchMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (Math.max(screen.width, screen.height) < 1024);
+  const curDpr = window.devicePixelRatio || 1;
+
+  if(isTouchMobile){
+    const isTablet = Math.min(screen.width, screen.height) >= 600;
+    const estPhysicalPpi = isTablet ? 264 : (curDpr >= 2.7 ? 440 : 380);
+    return estPhysicalPpi / (curDpr * 25.4);
+  }
+  return (96 * (curDpr >= 2 ? 1.25 : 1.0)) / (curDpr * 25.4);
+}
+
+function getActiveScreenPxPerMm(){
+  const savedDiag = parseFloat(localStorage.getItem(SCREEN_DIAG_KEY));
+  const curDpr = window.devicePixelRatio || 1;
+
+  if(Number.isFinite(savedDiag) && savedDiag > 0){
+    const rawPxW = screen.width * curDpr;
+    const rawPxH = screen.height * curDpr;
+    const diagPixels = Math.hypot(rawPxW, rawPxH);
+    const physicalPpi = diagPixels / savedDiag;
+    return physicalPpi / (curDpr * 25.4);
+  }
+
+  return getAutomaticScreenPxPerMm();
+}
+
+function updateScreenScaleUI(){
+  const savedDiag = localStorage.getItem(SCREEN_DIAG_KEY);
+  const pxPerMm = getActiveScreenPxPerMm();
+
+  if(savedDiag){
+    screenDiagInput.value = savedDiag;
+    screenAutoBadge.textContent = "Manual";
+    screenAutoBadge.className = "text-[8px] bg-sky-600 text-white px-1 py-0.5 rounded font-bold";
+  }else{
+    screenDiagInput.value = "";
+    screenAutoBadge.textContent = "Auto";
+    screenAutoBadge.className = "text-[8px] bg-slate-200 text-slate-700 px-1 py-0.5 rounded";
+  }
+  screenPpiSummary.textContent = `${(pxPerMm * 25.4).toFixed(1)} CSS PPI (${pxPerMm.toFixed(2)} px/mm)`;
+}
+
+// Group Button: Dropdown Menu Trigger (Popping to the left of the layout panel)
+screenPresetToggleBtn.onclick = e => {
+  e.stopPropagation();
+  const isHidden = screenPresetMenu.classList.contains("hidden");
+  if(isHidden){
+    const rect = screenPresetToggleBtn.getBoundingClientRect();
+    screenPresetMenu.style.top = `${Math.min(window.innerHeight - 240, Math.max(10, rect.top))}px`;
+    screenPresetMenu.style.right = `${window.innerWidth - rect.left + 4}px`;
+    screenPresetMenu.classList.remove("hidden");
+  }else{
+    screenPresetMenu.classList.add("hidden");
+  }
+};
+
+// Populate input when an item is selected from preset list
+document.querySelectorAll("#screenPresetMenu button").forEach(btn => {
+  btn.onclick = () => {
+    const size = btn.dataset.size;
+    screenDiagInput.value = size;
+    screenPresetMenu.classList.add("hidden");
+    localStorage.setItem(SCREEN_DIAG_KEY, String(size));
+    updateScreenScaleUI();
+    actual();
+  };
+});
+
+document.addEventListener("click", e => {
+  if(!e.target.closest("#screenPresetMenu") && !e.target.closest("#screenPresetToggleBtn")){
+    screenPresetMenu.classList.add("hidden");
+  }
+});
+
+screenDiagApplyBtn.onclick = () => {
+  const val = parseFloat(screenDiagInput.value);
+  if(Number.isFinite(val) && val > 2 && val < 100){
+    localStorage.setItem(SCREEN_DIAG_KEY, String(val));
+    updateScreenScaleUI();
+    actual();
+  }else{
+    alert("Please enter a valid screen diagonal between 3 and 100 inches.");
+  }
+};
+
+screenDiagResetBtn.onclick = () => {
+  localStorage.removeItem(SCREEN_DIAG_KEY);
+  updateScreenScaleUI();
+  actual();
+};
+
+
+/* =============================================================
+   SEPARATE SMART CROP SETTINGS PERSISTENCE & QUEUE SYNC
+   ============================================================= */
+
+const CROP_SETTINGS_KEY = "rc-smartcrop-settings-v1";
+let saveCropSettingsEnabled = false;
+
+function readCropSettings(){
+  try{
+    return JSON.parse(localStorage.getItem(CROP_SETTINGS_KEY) || "null");
+  }catch{
+    return null;
+  }
+}
+
+function persistCropSettings(){
+  if(!saveCropSettingsEnabled || !editingImageItem) return;
+  try{
+    localStorage.setItem(
+      CROP_SETTINGS_KEY,
+      JSON.stringify({
+        presetKey: editingImageItem.presetKey,
+        customRatio: editingImageItem.customRatio,
+        autoDeskew: editingImageItem.autoDeskew
+      })
+    );
+  }catch{}
+}
+
+/**
+ * Propagates the active crop configuration to all remaining pending images in the queue
+ */
+function applyCropSettingsToPendingQueue(){
+  if(!editingImageItem) return;
+  const currentKey = editingImageItem.presetKey;
+  const currentRatio = { ...editingImageItem.customRatio };
+  const currentDeskew = editingImageItem.autoDeskew;
+  const currentW = editingImageItem.renderW;
+  const currentH = editingImageItem.renderH;
+
+  for(let idx = cropQueueIndex + 1; idx < cropQueue.length; idx++){
+    const queueItem = images.find(img => img.id === cropQueue[idx]);
+    if(queueItem){
+      queueItem.presetKey = currentKey;
+      queueItem.customRatio = { ...currentRatio };
+      queueItem.autoDeskew = currentDeskew;
+      queueItem.renderW = currentW;
+      queueItem.renderH = currentH;
+    }
+  }
+}
+
+const savedCrop = readCropSettings();
+saveCropSettingsEnabled = !!savedCrop;
+saveCropSettingsToggle.checked = saveCropSettingsEnabled;
+
+saveCropSettingsToggle.onchange = () => {
+  saveCropSettingsEnabled = saveCropSettingsToggle.checked;
+  if(saveCropSettingsEnabled){
+    persistCropSettings();
+    applyCropSettingsToPendingQueue();
+  }else{
+    localStorage.removeItem(CROP_SETTINGS_KEY);
+  }
+};
+
+
+/* =============================================================
    AI MODEL INITIALIZATION
    ============================================================= */
 
@@ -987,38 +1511,26 @@ function setProcessing(activeState, label = "Rendering..."){
 
 
 /* =============================================================
-   COLLAPSIBLE SIDEBAR GROUPS
-   ============================================================= */
-
-function toggleGroup(groupId){
-  const el = $(groupId);
-  if(el){
-    el.classList.toggle("collapsed");
-  }
-}
-
-
-/* =============================================================
    UNIT CONVERSION
    ============================================================= */
 
-function toPixels(val, unit){
-  if(unit === "mm") return (val / 25.4) * ppi;
-  if(unit === "cm") return (val / 2.54) * ppi;
-  if(unit === "in") return val * ppi;
+function toPixels(val, unit, customPpi = ppi){
+  if(unit === "mm") return (val / 25.4) * customPpi;
+  if(unit === "cm") return (val / 2.54) * customPpi;
+  if(unit === "in") return val * customPpi;
   return val;
 }
 
-function fromPixels(pxVal, targetUnit){
-  if(targetUnit === "mm") return (pxVal * 25.4) / ppi;
-  if(targetUnit === "cm") return (pxVal * 2.54) / ppi;
-  if(targetUnit === "in") return pxVal / ppi;
+function fromPixels(pxVal, targetUnit, customPpi = ppi){
+  if(targetUnit === "mm") return (pxVal * 25.4) / customPpi;
+  if(targetUnit === "cm") return (pxVal * 2.54) / customPpi;
+  if(targetUnit === "in") return pxVal / customPpi;
   return pxVal;
 }
 
-function convertValue(val, fromUnit, toUnit){
-  const px = toPixels(val, fromUnit);
-  return fromPixels(px, toUnit);
+function convertValue(val, fromUnit, toUnit, customPpi = ppi){
+  const px = toPixels(val, fromUnit, customPpi);
+  return fromPixels(px, toUnit, customPpi);
 }
 
 function getStepValue(unit){
@@ -1048,7 +1560,11 @@ function active(){ return images.find(i => i.id === activeImageId) || null; }
 function getImageRatio(im){
   if(!im) return 35 / 45;
   if(im.presetKey === "custom" && im.customRatio){
-    return im.customRatio.w / im.customRatio.h;
+    const w = parseFloat(im.customRatio.w);
+    const h = parseFloat(im.customRatio.h);
+    if(Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0){
+      return w / h;
+    }
   }
   return PRESETS[im.presetKey]?.ratio || (35 / 45);
 }
@@ -1110,6 +1626,7 @@ function resize(){
   canvas.style.width = vw + "px";
   canvas.style.height = vh + "px";
 
+  updateScreenScaleUI();
   render();
 }
 addEventListener("resize",resize);
@@ -1123,7 +1640,7 @@ function paper(){
 
 
 /* =============================================================
-   COORDINATE TRANSFORMS & ZOOM
+   COORDINATE TRANSFORMS, ZOOM & PHYSICAL SIZE
    ============================================================= */
 
 function worldToScreen(x,y){
@@ -1158,11 +1675,19 @@ function fit(){
   render();
 }
 
+/**
+ * True 1:1 Physical match using automatic/diagonal screen density
+ */
 function actual(){
   if(!sheetCanvas) return;
-  camera.zoom = 1;
-  camera.x = (vw - sheetCanvas.width) / 2;
-  camera.y = (vh - sheetCanvas.height) / 2;
+
+  const printPxPerMm = ppi / 25.4;
+  const screenPxPerMm = getActiveScreenPxPerMm();
+  const physicalZoom = screenPxPerMm / printPxPerMm;
+
+  camera.zoom = clamp(physicalZoom, MIN_ZOOM, MAX_ZOOM);
+  camera.x = (vw - sheetCanvas.width * camera.zoom) / 2;
+  camera.y = (vh - sheetCanvas.height * camera.zoom) / 2;
   setZoomDisplay();
   render();
 }
@@ -1488,6 +2013,14 @@ batchZipBtn.onclick = downloadBatchZip;
    ============================================================= */
 
 function makeImage(file, imgElement){
+  // Apply saved Crop settings if persistence is active
+  const cropDefaults = readCropSettings();
+  const presetKey = cropDefaults?.presetKey || "iso";
+  const customRatio = cropDefaults?.customRatio || { w: 35, h: 45, unit: "mm", ppi: 300 };
+  const autoDeskew = cropDefaults ? !!cropDefaults.autoDeskew : true;
+
+  const initialPreset = PRESETS[presetKey] || PRESETS.iso;
+
   return {
     id: nextId++,
     file,
@@ -1499,15 +2032,15 @@ function makeImage(file, imgElement){
     rows: 1,
     columns: 6,
     visible: true,
-    presetKey: "iso",
-    customRatio: { w: 35, h: 45 },
-    renderW: 35,
-    renderH: 45,
+    presetKey: presetKey,
+    customRatio: { ...customRatio },
+    renderW: presetKey === "custom" ? customRatio.w : initialPreset.wMm,
+    renderH: presetKey === "custom" ? customRatio.h : initialPreset.hMm,
     scale: 1.0,
     offsetX: 0,
     offsetY: 0,
     rotDeg: 0,
-    autoDeskew: true,
+    autoDeskew: autoDeskew,
     toolLocks: { scale: true, offsetY: true, offsetX: true, rotDeg: false },
     detectedFaces: []
   };
@@ -1589,7 +2122,7 @@ ctxRemoveBtn.onclick = () => {
 
 
 /* =============================================================
-   THUMBNAILS & DIRECT BOTTOM ACTION BAR
+   THUMBNAILS & TOP-RIGHT CHECKBOX / 3 BOTTOM ACTION BUTTONS
    ============================================================= */
 
 function renderThumbs(){
@@ -1675,13 +2208,34 @@ function renderThumbs(){
     n.className = "image-thumb-number";
     n.textContent = index + 1;
 
-    // DIRECT BOTTOM ACTION BUTTONS BAR
+    // TOP-RIGHT SELECTION CHECKBOX (Selected = Render on Canvas)
+    const selectWrap = document.createElement("label");
+    selectWrap.className = "image-thumb-select-wrap";
+    selectWrap.title = im.visible ? "Deselect from grid canvas" : "Select to render on grid canvas";
+    selectWrap.onclick = e => e.stopPropagation();
+
+    const selectCb = document.createElement("input");
+    selectCb.type = "checkbox";
+    selectCb.className = "image-thumb-select-cb";
+    selectCb.checked = !!im.visible;
+    selectCb.onchange = e => {
+      e.stopPropagation();
+      im.visible = selectCb.checked;
+      item.classList.toggle("hidden-image", !im.visible);
+      selectWrap.title = im.visible ? "Deselect from grid canvas" : "Select to render on grid canvas";
+      schedule();
+      updateStatus();
+    };
+    selectWrap.appendChild(selectCb);
+
+    // BOTTOM ACTIONS BAR: 3 Buttons (Edit, Download, Remove) taking 1/3 space each with larger icons
     const actionsBar = document.createElement("div");
     actionsBar.className = "image-thumb-actions";
 
-    // 1. Crop button
+    // 1. Edit (Crop & Align) button
     const cropBtn = document.createElement("button");
     cropBtn.type = "button";
+    cropBtn.className = "thumb-action-btn";
     cropBtn.title = "Crop & Align";
     cropBtn.innerHTML = "✎";
     cropBtn.onclick = e => {
@@ -1694,6 +2248,7 @@ function renderThumbs(){
     // 2. Download button
     const dlBtn = document.createElement("button");
     dlBtn.type = "button";
+    dlBtn.className = "thumb-action-btn";
     dlBtn.title = "Download Photo";
     dlBtn.innerHTML = "⬇";
     dlBtn.onclick = e => {
@@ -1701,22 +2256,10 @@ function renderThumbs(){
       downloadSingleImage(im);
     };
 
-    // 3. Toggle Visibility button
-    const visBtn = document.createElement("button");
-    visBtn.type = "button";
-    visBtn.title = im.visible ? "Hide from Grid" : "Show in Grid";
-    visBtn.innerHTML = im.visible ? "○" : "◉";
-    visBtn.onclick = e => {
-      e.stopPropagation();
-      im.visible = !im.visible;
-      renderThumbs();
-      schedule();
-    };
-
-    // 4. Remove button
+    // 3. Remove button
     const remBtn = document.createElement("button");
     remBtn.type = "button";
-    remBtn.className = "danger";
+    remBtn.className = "thumb-action-btn danger";
     remBtn.title = "Remove Photo";
     remBtn.innerHTML = "×";
     remBtn.onclick = e => {
@@ -1724,9 +2267,9 @@ function renderThumbs(){
       removeImage(im.id);
     };
 
-    actionsBar.append(cropBtn, dlBtn, visBtn, remBtn);
+    actionsBar.append(cropBtn, dlBtn, remBtn);
 
-    item.append(preview, n, actionsBar);
+    item.append(preview, n, selectWrap, actionsBar);
     thumbnailList.appendChild(item);
   });
 
@@ -1772,7 +2315,7 @@ function updateStatus(){
     return;
   }
   const i = active();
-  const currentRatioLabel = i?.presetKey === "custom" ? `Custom ${i.customRatio.w}:${i.customRatio.h}` : (PRESETS[i?.presetKey]?.label || "35×45 mm");
+  const currentRatioLabel = i?.presetKey === "custom" ? `Custom ${i.customRatio.w}${i.customRatio.unit}:${i.customRatio.h}${i.customRatio.unit}` : (PRESETS[i?.presetKey]?.label || "35×45 mm");
   status.textContent =
     `${layout.paper} · ${layout.landscape ? "Landscape" : "Portrait"} · ` +
     `${v.length} image${v.length > 1 ? "s" : ""} · Active ${images.indexOf(i) + 1} (${currentRatioLabel}) · ` +
@@ -1869,16 +2412,48 @@ function openSmartCrop(id){
   syncActive();
   renderThumbs();
 
+  // If crop settings persistence is enabled, immediately apply remembered settings to this image
+  if(saveCropSettingsEnabled){
+    const cropDefaults = readCropSettings();
+    if(cropDefaults){
+      im.presetKey = cropDefaults.presetKey;
+      im.customRatio = { ...cropDefaults.customRatio };
+      im.autoDeskew = !!cropDefaults.autoDeskew;
+      if(im.presetKey === "custom"){
+        const unit = im.customRatio.unit || "mm";
+        const targetPpi = im.customRatio.ppi || 300;
+        let wMm = im.customRatio.w;
+        let hMm = im.customRatio.h;
+        if(unit === "px"){ wMm = (wMm / targetPpi) * 25.4; hMm = (hMm / targetPpi) * 25.4; }
+        else if(unit === "cm"){ wMm *= 10; hMm *= 10; }
+        else if(unit === "in"){ wMm *= 25.4; hMm *= 25.4; }
+        im.renderW = convertValue(wMm, "mm", layout.renderSizeUnit);
+        im.renderH = convertValue(hMm, "mm", layout.renderSizeUnit);
+      }else{
+        const p = PRESETS[im.presetKey] || PRESETS.iso;
+        im.renderW = p.wMm;
+        im.renderH = p.hMm;
+      }
+    }
+  }
+
   smartCropPresetSelect.value = im.presetKey || "iso";
-  customRatioInputs.classList.toggle("hidden", im.presetKey !== "custom");
-  customRatioInputs.classList.toggle("flex", im.presetKey === "custom");
+  const isCustom = im.presetKey === "custom";
+  customRatioInputs.classList.toggle("hidden", !isCustom);
+  customRatioInputs.classList.toggle("flex", isCustom);
+
   if(im.customRatio){
     customRatioW.value = im.customRatio.w;
     customRatioH.value = im.customRatio.h;
+    customUnitSelect.value = im.customRatio.unit || "mm";
+    customPpiInput.value = String(im.customRatio.ppi || 300);
+    customPpiSelect.value = [300, 450, 600].includes(im.customRatio.ppi) ? String(im.customRatio.ppi) : "";
+    customPpiContainer.classList.toggle("hidden", customUnitSelect.value === "px");
   }
 
   // Reflect boolean state of autoDeskew
   smartAutoDeskew.checked = !!im.autoDeskew;
+  saveCropSettingsToggle.checked = saveCropSettingsEnabled;
 
   smartCropModal.classList.add("visible");
 
@@ -1912,33 +2487,79 @@ smartCropPresetSelect.onchange = () => {
   if(key === "custom"){
     customRatioInputs.classList.remove("hidden");
     customRatioInputs.classList.add("flex");
-    editingImageItem.customRatio = {
-      w: parseFloat(customRatioW.value) || 35,
-      h: parseFloat(customRatioH.value) || 45
-    };
+    onCustomCropSetupChange();
   }else{
     customRatioInputs.classList.add("hidden");
     customRatioInputs.classList.remove("flex");
     const p = PRESETS[key];
     editingImageItem.renderW = p.wMm;
     editingImageItem.renderH = p.hMm;
+    renderModalStage();
   }
-
-  renderModalStage();
+  persistCropSettings();
+  applyCropSettingsToPendingQueue();
 };
 
-function onCustomRatioChange(){
+/**
+ * Handles custom ratio, unit, and PPI adjustments without breaking scale
+ */
+function onCustomCropSetupChange(){
   if(!editingImageItem || editingImageItem.presetKey !== "custom") return;
+
+  const unit = customUnitSelect.value;
+  const targetPpi = parseInt(customPpiInput.value, 10) || 300;
+  customPpiContainer.classList.toggle("hidden", unit === "px");
+
   let w = parseFloat(customRatioW.value) || 1;
   let h = parseFloat(customRatioH.value) || 1;
-  editingImageItem.customRatio = { w, h };
-  editingImageItem.renderW = w;
-  editingImageItem.renderH = h;
+
+  editingImageItem.customRatio = {
+    w: w,
+    h: h,
+    unit: unit,
+    ppi: targetPpi
+  };
+
+  // Convert custom dimensions into physical millimeters
+  let physicalMmW = w;
+  let physicalMmH = h;
+
+  if(unit === "px"){
+    physicalMmW = (w / targetPpi) * 25.4;
+    physicalMmH = (h / targetPpi) * 25.4;
+  }else if(unit === "cm"){
+    physicalMmW = w * 10;
+    physicalMmH = h * 10;
+  }else if(unit === "in"){
+    physicalMmW = w * 25.4;
+    physicalMmH = h * 25.4;
+  }
+
+  // Convert to layout's active renderSizeUnit
+  editingImageItem.renderW = convertValue(physicalMmW, "mm", layout.renderSizeUnit);
+  editingImageItem.renderH = convertValue(physicalMmH, "mm", layout.renderSizeUnit);
+
   renderModalStage();
+  persistCropSettings();
+  applyCropSettingsToPendingQueue();
 }
 
-customRatioW.oninput = onCustomRatioChange;
-customRatioH.oninput = onCustomRatioChange;
+customRatioW.oninput = onCustomCropSetupChange;
+customRatioH.oninput = onCustomCropSetupChange;
+customUnitSelect.onchange = onCustomCropSetupChange;
+
+// Group Button: Dropdown selection populates input, and input updates custom PPI directly
+customPpiSelect.onchange = () => {
+  if(customPpiSelect.value){
+    customPpiInput.value = customPpiSelect.value;
+    onCustomCropSetupChange();
+  }
+};
+customPpiInput.oninput = () => {
+  customPpiInput.value = customPpiInput.value.replace(/\D/g, "");
+  customPpiSelect.value = [300, 450, 600].includes(parseInt(customPpiInput.value, 10)) ? customPpiInput.value : "";
+  onCustomCropSetupChange();
+};
 
 // Auto-Deskew toggle: resets manual tilt on enable and updates modal view & slider
 smartAutoDeskew.onchange = () => {
@@ -1949,6 +2570,8 @@ smartAutoDeskew.onchange = () => {
   }
   renderModalStage();
   updateSmartCropSliderUI();
+  persistCropSettings();
+  applyCropSettingsToPendingQueue();
 };
 
 smartCancelBtn.onclick = closeSmartCropModal;
@@ -1963,6 +2586,8 @@ smartResetBtn.onclick = () => {
   smartAutoDeskew.checked = true;
   updateSmartCropSliderUI();
   renderModalStage();
+  persistCropSettings();
+  applyCropSettingsToPendingQueue();
 };
 
 smartTabBtns.forEach(btn => {
@@ -2012,6 +2637,10 @@ smartApplyBtn.onclick = async () => {
   await performSmartCrop(editingImageItem);
 
   if(cropQueue.length > 0 && cropQueueIndex < cropQueue.length - 1){
+    if(saveCropSettingsEnabled){
+      persistCropSettings();
+      applyCropSettingsToPendingQueue();
+    }
     cropQueueIndex++;
     openSmartCrop(cropQueue[cropQueueIndex]);
   }else{
@@ -2661,7 +3290,7 @@ imageTrayToggle.onclick = () => {
 
 
 /* =============================================================
-   SETTINGS PERSISTENCE
+   SETTINGS PERSISTENCE (GRID MODULE)
    ============================================================= */
 
 const SETTINGS_KEY = "rc-crop-print-general-settings-v10";
@@ -3120,10 +3749,13 @@ mq.addEventListener("change", e => {
 
 portraitButton.click();
 updateLayoutUI();
+restoreGroupStates();
 syncActive();
 updateRotateUI();
 renderThumbs();
+updateScreenScaleUI();
 resize();
-</script>
+    </script>
 </body>
+
 </html>
